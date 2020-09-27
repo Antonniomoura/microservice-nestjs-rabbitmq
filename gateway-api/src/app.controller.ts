@@ -1,12 +1,27 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Body, Controller, Get, Logger, Post } from '@nestjs/common';
+import { ClientProxy, ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { CreateProductDto } from './dtos/create-product.dto';
 
-@Controller()
+@Controller('api/v1')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  private clientAdminBackend: ClientProxy;
+  private logger: Logger = new Logger(AppController.name);
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  constructor() {
+    this.clientAdminBackend = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [process.env.RMQ_SERVER],
+        queue: process.env.QUEUE_NAME
+      }
+    })
   }
+
+  @Post('')
+  async createProduct(
+    @Body() createProductDto: CreateProductDto
+  ) {
+    return await this.clientAdminBackend.emit(process.env.CREATE_PRODUCT, createProductDto)
+  }
+
 }
